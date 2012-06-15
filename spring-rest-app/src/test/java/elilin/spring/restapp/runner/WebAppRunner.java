@@ -1,6 +1,5 @@
 package elilin.spring.restapp.runner;
 
-import org.apache.log4j.BasicConfigurator;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -19,14 +18,12 @@ public class WebAppRunner {
 	public void start() throws Exception {
 	    server = new Server(port);
 	    
-	    WebAppContext context = new WebAppContext();
-	    context.setServer(server);
-	    
 		DispatcherServlet dispatcherServlet = new DispatcherServlet();
 	    dispatcherServlet.setContextConfigLocation("classpath:spring/dispatcher-servlet.xml");
 	    
-	    ServletHolder servletHolder = new ServletHolder("", dispatcherServlet);
-	    context.addServlet(servletHolder, "/*");
+	    WebAppContext context = new WebAppContext();
+	    context.setServer(server);
+	    context.addServlet(new ServletHolder("dispatcher-servlet", dispatcherServlet), "/*");
 	    context.setResourceBase(".");
 	    context.setContextPath("/");
 	    
@@ -40,6 +37,10 @@ public class WebAppRunner {
 
 	public String getBaseUri() {
 		return "http://localhost:" + this.port;
+	}
+	
+	public String getAbsoluteUrl(String path) {
+		return getBaseUri() + "/" + path;
 	}
 	
 
