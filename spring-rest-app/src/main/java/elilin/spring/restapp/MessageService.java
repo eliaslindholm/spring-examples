@@ -65,6 +65,15 @@ public class MessageService {
 		messages.put(messageId, message);
 	}
 	
+	@RequestMapping(value = "/{messageId}", method = RequestMethod.DELETE)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteMessage(@PathVariable("messageId") String messageId) {
+		if (!messages.containsKey(messageId)) {
+			throw new NotFound();
+		}
+		messages.remove(messageId);
+	}
+	
 	private String getEtag(Message old) {
 		return old.hashCode() + "";
 	}

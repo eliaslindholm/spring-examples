@@ -10,6 +10,7 @@ import java.util.Date;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
@@ -80,6 +81,26 @@ public class MessageServiceTest {
 		MessageDto updated = fromJson(response.getEntity().getContent(), MessageDto.class);
 		
 		assertEquals("Updated message", updated.getMessage());
+	}
+	
+	@Test
+	public void deleteRemovesAnExistingMessage() throws Exception {
+		HttpPost post = new HttpPost(getMessagesUri());
+		post.setEntity(new StringEntity(toJson(new MessageDto("Delete me!", "Foppa")), "application/json", "ISO-8859-1"));
+		HttpResponse response = httpclient.execute(post);
+		String messageUri = response.getFirstHeader("Location").getValue();
+		response.getEntity().getContent().close();
+		
+		response = httpclient.execute(new HttpDelete(messageUri));
+		assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine().getStatusCode());
+		
+		response = httpclient.execute(new HttpGet(messageUri));
+		response.getEntity().getContent().close();
+		assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusLine().getStatusCode());
+		
+		response = httpclient.execute(new HttpDelete(messageUri));
+		assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusLine().getStatusCode());
+		
 	}
 	
 	private <T> T fromJson(InputStream content, Class<T> type) throws Exception {
