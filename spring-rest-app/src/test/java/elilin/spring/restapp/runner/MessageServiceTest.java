@@ -3,8 +3,6 @@ package elilin.spring.restapp.runner;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Date;
 
 import org.apache.http.HttpResponse;
@@ -14,10 +12,9 @@ import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -28,7 +25,7 @@ public class MessageServiceTest {
 	
 	private static WebAppRunner runner;
 	
-	private HttpClient httpclient = new DefaultHttpClient();
+	private JsonRestClient restClient = new JsonRestClient();
 
 	@BeforeClass
 	public static void startWebapp() throws Exception {
@@ -43,77 +40,96 @@ public class MessageServiceTest {
 	
 	@Test
 	public void afterPostingAMessageItCanBeRetrivedUsingTheProvidedLocation() throws Exception {
-		HttpPost post = new HttpPost(getMessagesUri());
-		post.setEntity(new StringEntity(toJson(new MessageDto("Hello World!", "Foppa")), "application/json", "ISO-8859-1"));
-		HttpResponse response = httpclient.execute(post);
-		response.getEntity().getContent().close();
+		HttpResponse response = restClient.post(getMessagesUri(), new MessageDto("Hello World!", "Foppa"));
 		assertNotNull("Location header should be set", response.getFirstHeader("Location"));
 		assertEquals("Status code", HttpStatus.SC_CREATED, response.getStatusLine().getStatusCode());
 		
-		response = httpclient.execute(new HttpGet(response.getFirstHeader("Location").getValue()));
-		MessageDto result = fromJson(response.getEntity().getContent(), MessageDto.class);
-		assertEquals("Hello World!", result.getMessage());
-		assertEquals("Foppa", result.getSignature());
+		MessageDto message = restClient.get(response.getFirstHeader("Location").getValue(), MessageDto.class);
+		assertEquals("Hello World!", message.getMessage());
+		assertEquals("Foppa", message.getSignature());
 	}
 
 	@Test
 	public void putUpdatesAnExistingMessage() throws Exception {
-		HttpPost post = new HttpPost(getMessagesUri());
-		post.setEntity(new StringEntity(toJson(new MessageDto("Hello World!", "Foppa")), "application/json", "ISO-8859-1"));
-		HttpResponse response = httpclient.execute(post);
-		response.getEntity().getContent().close();
+		HttpResponse response = restClient.post(getMessagesUri(), new MessageDto("Hello World!", "Foppa"));
 		
 		String messageUri = response.getFirstHeader("Location").getValue();
-		HttpGet get = new HttpGet(messageUri);
-		response = httpclient.execute(get);
-		MessageDto msg = fromJson(response.getEntity().getContent(), MessageDto.class);
-		String etag = response.getFirstHeader("ETag").getValue();
-		response.getEntity().getContent().close();
+		MessageDto msg = restClient.get(messageUri, MessageDto.class);
+		String etag = restClient.lastResponse().getFirstHeader("ETag").getValue();
 
 		msg.setMessage("Updated message");
-		HttpPut put = new HttpPut(messageUri);
-		put.setHeader("If-Match", etag);
-		put.setEntity(new StringEntity(new ObjectMapper().writeValueAsString(msg), "application/json", "ISO-8859-1"));
-		response = httpclient.execute(put);
+		restClient.put(messageUri, msg, etag);
 		
-		get = new HttpGet(messageUri);
-		response = httpclient.execute(get);
-		MessageDto updated = fromJson(response.getEntity().getContent(), MessageDto.class);
+		MessageDto updated = restClient.get(messageUri, MessageDto.class);
 		
 		assertEquals("Updated message", updated.getMessage());
 	}
-	
+
 	@Test
 	public void deleteRemovesAnExistingMessage() throws Exception {
-		HttpPost post = new HttpPost(getMessagesUri());
-		post.setEntity(new StringEntity(toJson(new MessageDto("Delete me!", "Foppa")), "application/json", "ISO-8859-1"));
-		HttpResponse response = httpclient.execute(post);
+		HttpResponse response = restClient.post(getMessagesUri(), new MessageDto("Delete me!", "Foppa"));
 		String messageUri = response.getFirstHeader("Location").getValue();
-		response.getEntity().getContent().close();
 		
-		response = httpclient.execute(new HttpDelete(messageUri));
+		response = restClient.delete(messageUri);
 		assertEquals(HttpStatus.SC_NO_CONTENT, response.getStatusLine().getStatusCode());
 		
-		response = httpclient.execute(new HttpGet(messageUri));
-		response.getEntity().getContent().close();
+		response = restClient.get(messageUri);
 		assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusLine().getStatusCode());
 		
-		response = httpclient.execute(new HttpDelete(messageUri));
+		response = restClient.delete(messageUri);
 		assertEquals(HttpStatus.SC_NOT_FOUND, response.getStatusLine().getStatusCode());
 		
-	}
-	
-	private <T> T fromJson(InputStream content, Class<T> type) throws Exception {
-		return new ObjectMapper().readValue(content, type);
-	}
-
-	private String toJson(Object o) throws IOException, JsonGenerationException,
-			JsonMappingException {
-		return new ObjectMapper().writeValueAsString(o);
 	}
 
 	private String getMessagesUri() {
 		return runner.getAbsoluteUrl("/messages");
+	}
+	
+	static class JsonRestClient {
+		HttpClient httpClient = new DefaultHttpClient();
+		ObjectMapper objectMapper = new ObjectMapper();
+		HttpResponse lastResponse;
+		
+		public HttpResponse post(String uri, Object entity) throws Exception {
+			HttpPost post = new HttpPost(uri);
+			String json = objectMapper.writeValueAsString(entity);
+			post.setEntity(new StringEntity(json, "application/json", "ISO-8859-1"));
+			return execute(post);
+		}
+		
+		private HttpResponse execute(HttpUriRequest request) throws Exception {
+			// Release resources used by previous request
+			if (this.lastResponse != null && this.lastResponse.getEntity() != null) {
+				this.lastResponse.getEntity().getContent().close();
+			}
+			this.lastResponse = httpClient.execute(request);
+			return this.lastResponse;
+		}
+
+		public HttpResponse delete(String messageUri) throws Exception {
+			return execute(new HttpDelete(messageUri));
+		}
+
+		public HttpResponse get(String uri) throws Exception {
+			return execute(new HttpGet(uri));
+		}
+
+		public <T> T get(String uri, Class<T> type) throws Exception {
+			execute(new HttpGet(uri));
+			return objectMapper.readValue(this.lastResponse.getEntity().getContent(), type);
+		}
+		
+		public HttpResponse lastResponse() {
+			return this.lastResponse;
+		}
+
+		
+		public HttpResponse put(String uri, Object entity, String etag) throws Exception {
+			HttpPut put = new HttpPut(uri);
+			put.setHeader("If-Match", etag);
+			put.setEntity(new StringEntity(new ObjectMapper().writeValueAsString(entity), "application/json", "ISO-8859-1"));
+			return execute(put);
+		}
 	}
 
 	static class MessageDto {
