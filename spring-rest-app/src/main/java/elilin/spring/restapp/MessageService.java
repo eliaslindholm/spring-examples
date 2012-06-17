@@ -30,7 +30,10 @@ public class MessageService {
 	@ResponseStatus(HttpStatus.CREATED)
 	public void createMessage(@RequestBody Message message, 
 													  HttpServletRequest request,
-													  HttpServletResponse response) {			
+													  HttpServletResponse response) {
+		if (!validMessage(message)) {
+			throw new BadRequest();
+		}
 		message.setId(idGen.incrementAndGet() + "");
 		message.setCreated(new Date());
 		messages.put(message.getId(), message);
@@ -38,6 +41,10 @@ public class MessageService {
 		String requestUrl = request.getRequestURL().toString();
 	    URI uri = new UriTemplate("{requestUrl}/{messageId}").expand(requestUrl, message.getId());
 	    response.setHeader("Location", uri.toASCIIString());
+	}
+
+	private boolean validMessage(Message message) {
+		return message.getMessage() != null && message.getSignature() != null;
 	}
 	
 	@RequestMapping(value = "/{messageId}", method = RequestMethod.GET)
