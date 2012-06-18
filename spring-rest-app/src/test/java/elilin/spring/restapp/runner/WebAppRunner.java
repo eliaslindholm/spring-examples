@@ -15,16 +15,22 @@ public class WebAppRunner {
 	private int port = 21019;
 	private Server server;
 	
+	public static void main(String[] args) throws Exception {
+		new WebAppRunner().start();
+	}
+	
 	public void start() throws Exception {
 	    server = new Server(port);
 	    
-		DispatcherServlet dispatcherServlet = new DispatcherServlet();
-	    dispatcherServlet.setContextConfigLocation("classpath:spring/dispatcher-servlet.xml");
+//		DispatcherServlet dispatcherServlet = new DispatcherServlet();
+//	    dispatcherServlet.setContextConfigLocation("classpath:spring/dispatcher-servlet.xml");
 	    
 	    WebAppContext context = new WebAppContext();
-	    context.setServer(server);
-	    context.addServlet(new ServletHolder("dispatcher-servlet", dispatcherServlet), "/*");
-	    context.setResourceBase(".");
+	    context.setResourceBase("src/main/webapp");
+//	    context.setWar("src/main/webapp");
+//	    context.setServer(server);
+//	    context.addServlet(new ServletHolder("dispatcher-servlet", dispatcherServlet), "/*");
+//	    context.setResourceBase("");
 	    context.setContextPath("/");
 	    
 	    server.setHandler(context);

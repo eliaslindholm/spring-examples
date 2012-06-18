@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Date;
+import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -54,6 +55,13 @@ public class MessageServiceTest {
 		assertEquals(HttpStatus.SC_BAD_REQUEST, response.getStatusLine().getStatusCode());
 	}
 
+	@Test
+	public void malformedRequestToCreateResourceReturnsValidationErrors() throws Exception {
+		Map<String, Object> errors = restClient.postForObject(getMessagesUri(), new MessageDto(null, null), Map.class);
+		assertEquals("Missing", errors.get("message"));
+		assertEquals("Missing", errors.get("signature"));
+	}
+	
 	@Test
 	public void putUpdatesAnExistingResource() throws Exception {
 		HttpResponse response = restClient.post(getMessagesUri(), new MessageDto("Hello World!", "Foppa"));

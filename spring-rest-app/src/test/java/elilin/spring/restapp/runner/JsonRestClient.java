@@ -1,5 +1,7 @@
 package elilin.spring.restapp.runner;
 
+import java.io.IOException;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
@@ -9,6 +11,8 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
 public class JsonRestClient {
@@ -23,6 +27,14 @@ public class JsonRestClient {
 		post.setEntity(new StringEntity(json, "application/json", "ISO-8859-1"));
 		return execute(post);
 	}
+	
+	public <T> T postForObject(String uri, Object entity, Class<T> type) throws Exception {
+		HttpPost post = new HttpPost(uri);
+		String json = objectMapper.writeValueAsString(entity);
+		post.setEntity(new StringEntity(json, "application/json", "ISO-8859-1"));
+		HttpResponse response = execute(post);
+		return unmarshall(response, type);
+	}
 
 	public HttpResponse delete(String messageUri) throws Exception {
 		return execute(new HttpDelete(messageUri));
@@ -33,8 +45,13 @@ public class JsonRestClient {
 	}
 
 	public <T> T get(String uri, Class<T> type) throws Exception {
-		execute(new HttpGet(uri));
-		return objectMapper.readValue(this.lastResponse.getEntity().getContent(), type);
+		HttpResponse response = execute(new HttpGet(uri));
+		return unmarshall(response, type);
+	}
+
+	private <T> T unmarshall(HttpResponse response, Class<T> type) throws IOException,
+			JsonParseException, JsonMappingException {
+		return objectMapper.readValue(response.getEntity().getContent(), type);
 	}
 	
 	public HttpResponse put(String uri, Object entity, String etag) throws Exception {

@@ -30,6 +30,11 @@
 			<artifactId>jackson-mapper-lgpl</artifactId>
 			<version>1.9.5</version>
 		</dependency>
+		<dependency>
+			<groupId>org.eclipse.jetty.orbit</groupId>
+			<artifactId>javax.servlet</artifactId>
+			<version>3.0.0.v201112011016</version>
+		</dependency>
 
 		<!-- Test scoped deps -->
 		<dependency>

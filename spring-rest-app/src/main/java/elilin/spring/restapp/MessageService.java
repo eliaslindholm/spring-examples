@@ -2,6 +2,7 @@ package elilin.spring.restapp;
 
 import java.net.URI;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -11,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,14 +28,18 @@ public class MessageService {
 	private Map<String, Message> messages = new ConcurrentHashMap<String, Message>();
 	private AtomicInteger idGen = new AtomicInteger(1);
 	
+	@ExceptionHandler(RestErrorException.class)
+	public @ResponseBody Object handle(RestErrorException e, HttpServletResponse response) {
+		response.setStatus(e.getStatusCode());
+		return e.getEntity();
+	}
+	
 	@RequestMapping(method = RequestMethod.POST)
 	@ResponseStatus(HttpStatus.CREATED)
 	public void createMessage(@RequestBody Message message, 
-													  HttpServletRequest request,
-													  HttpServletResponse response) {
-		if (!validMessage(message)) {
-			throw new BadRequest();
-		}
+							  HttpServletRequest request,
+							  HttpServletResponse response) {
+		validate(message);
 		message.setId(idGen.incrementAndGet() + "");
 		message.setCreated(new Date());
 		messages.put(message.getId(), message);
@@ -43,8 +49,17 @@ public class MessageService {
 	    response.setHeader("Location", uri.toASCIIString());
 	}
 
-	private boolean validMessage(Message message) {
-		return message.getMessage() != null && message.getSignature() != null;
+	private void validate(Message message) {
+		Map<String, String> validationErrors = new HashMap<String, String>();
+		if (message.getMessage() == null) {
+			validationErrors.put("message", "Missing");
+		}
+		if (message.getSignature() == null) {
+			validationErrors.put("signature", "Missing");
+		}
+		if (!validationErrors.isEmpty()) {
+			throw new RestErrorException(HttpStatus.BAD_REQUEST, validationErrors);
+		}
 	}
 	
 	@RequestMapping(value = "/{messageId}", method = RequestMethod.GET)
@@ -52,7 +67,7 @@ public class MessageService {
 											HttpServletResponse response) {
 		Message msg = messages.get(id);
 		if (msg == null) {
-			throw new NotFound();
+			throw new RestErrorException(HttpStatus.NOT_FOUND);
 		}
 		response.setHeader("ETag", getEtag(msg));
 		return msg;
@@ -67,7 +82,7 @@ public class MessageService {
 		String eTag = request.getHeader("If-Match");
 		Message old = messages.get(messageId);
 		if (!getEtag(old).equals(eTag)) {
-			throw new PreconditionFailed();
+			throw new RestErrorException(HttpStatus.PRECONDITION_FAILED);
 		}
 		messages.put(messageId, message);
 	}
@@ -76,7 +91,7 @@ public class MessageService {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteMessage(@PathVariable("messageId") String messageId) {
 		if (!messages.containsKey(messageId)) {
-			throw new NotFound();
+			throw new RestErrorException(HttpStatus.NOT_FOUND, null);
 		}
 		messages.remove(messageId);
 	}
