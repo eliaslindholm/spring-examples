@@ -8,48 +8,50 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.util.UriTemplate;
-
+/**
+ * 
+ * Example of a REST-style CRUD service implemented using spring mvc.
+ * 
+ * @author Elias Lindholm
+ *
+ */
 @Controller
 @RequestMapping("/messages")
 public class MessageService {
-	
-	private Map<String, Message> messages = new ConcurrentHashMap<String, Message>();
+
+	private Map<MessageId, Message> messages = new ConcurrentHashMap<MessageId, Message>();
 	private AtomicInteger idGen = new AtomicInteger(1);
-	
-	@ExceptionHandler(RestErrorException.class)
-	public @ResponseBody Object handle(RestErrorException e, HttpServletResponse response) {
-		response.setStatus(e.getStatusCode());
-		return e.getEntity();
-	}
-	
+
 	@RequestMapping(method = RequestMethod.POST)
-	@ResponseStatus(HttpStatus.CREATED)
-	public void createMessage(@RequestBody Message message, 
-							  HttpServletRequest request,
-							  HttpServletResponse response) {
-		validate(message);
-		message.setId(idGen.incrementAndGet() + "");
+	public ResponseEntity<Object> createMessage(HttpEntity<Message> entity,
+												HttpServletRequest request) {
+		Message message = entity.getBody();
+		Map<String, String> errors = validate(message);
+		if (!errors.isEmpty()) {
+			return new ResponseEntity<Object>(errors, HttpStatus.BAD_REQUEST);
+		}
+		message.setId(new MessageId(idGen.incrementAndGet()));
 		message.setCreated(new Date());
 		messages.put(message.getId(), message);
-
+		
 		String requestUrl = request.getRequestURL().toString();
-	    URI uri = new UriTemplate("{requestUrl}/{messageId}").expand(requestUrl, message.getId());
-	    response.setHeader("Location", uri.toASCIIString());
+		URI uri = new UriTemplate("{requestUrl}/{messageId}").expand(requestUrl, message.getId());
+		HttpHeaders headers = new HttpHeaders();
+		headers.setLocation(uri);
+		return new ResponseEntity<Object>(headers,HttpStatus.CREATED);
 	}
-
-	private void validate(Message message) {
+	
+	private Map<String, String> validate(Message message) {
 		Map<String, String> validationErrors = new HashMap<String, String>();
 		if (message.getMessage() == null) {
 			validationErrors.put("message", "Missing");
@@ -57,46 +59,41 @@ public class MessageService {
 		if (message.getSignature() == null) {
 			validationErrors.put("signature", "Missing");
 		}
-		if (!validationErrors.isEmpty()) {
-			throw new RestErrorException(HttpStatus.BAD_REQUEST, validationErrors);
-		}
+		return validationErrors;
 	}
 	
 	@RequestMapping(value = "/{messageId}", method = RequestMethod.GET)
-	public @ResponseBody Message getMessage(@PathVariable("messageId") String id,
-											HttpServletResponse response) {
+	public ResponseEntity<Message> getMessage(@PathVariable("messageId") MessageId id) {
 		Message msg = messages.get(id);
 		if (msg == null) {
-			throw new RestErrorException(HttpStatus.NOT_FOUND);
+			return new ResponseEntity<Message>(HttpStatus.NOT_FOUND);
 		}
-		response.setHeader("ETag", getEtag(msg));
-		return msg;
+		HttpHeaders headers = new HttpHeaders();
+		headers.setETag(getEtag(msg));
+		return new ResponseEntity<Message>(msg, headers, HttpStatus.OK);
 	}
-	
+
 	@RequestMapping(value = "/{messageId}", method = RequestMethod.PUT)
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void putMessage(@PathVariable("messageId") String messageId, 
-							@RequestBody Message message, 
-							HttpServletRequest request,
-							HttpServletResponse response) {
-		String eTag = request.getHeader("If-Match");
+	public ResponseEntity<Void> updateMessage(@PathVariable("messageId") MessageId messageId,
+									   		HttpEntity<Message> message) {
 		Message old = messages.get(messageId);
-		if (!getEtag(old).equals(eTag)) {
-			throw new RestErrorException(HttpStatus.PRECONDITION_FAILED);
+		if (!getEtag(old).equals(message.getHeaders().getFirst("If-Match"))) {
+			return new ResponseEntity<Void>(HttpStatus.PRECONDITION_FAILED);
 		}
-		messages.put(messageId, message);
+		messages.put(messageId, message.getBody());
+		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
-	
+
 	@RequestMapping(value = "/{messageId}", method = RequestMethod.DELETE)
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void deleteMessage(@PathVariable("messageId") String messageId) {
+	public ResponseEntity<Void> deleteMessage(@PathVariable("messageId") MessageId messageId) {
 		if (!messages.containsKey(messageId)) {
-			throw new RestErrorException(HttpStatus.NOT_FOUND, null);
+			return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
 		}
 		messages.remove(messageId);
+		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
-	
+
 	private String getEtag(Message old) {
-		return old.hashCode() + "";
+		return "\"" + old.hashCode() + "\"";
 	}
 }

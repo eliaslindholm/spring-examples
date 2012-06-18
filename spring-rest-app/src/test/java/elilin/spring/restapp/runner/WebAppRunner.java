@@ -1,11 +1,10 @@
 package elilin.spring.restapp.runner;
 
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.webapp.WebAppContext;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
+ * Allows programmatic start and stop of an embedded jetty server running the rest application.
  * 
  * @author Elias Lindholm
  *
@@ -21,18 +20,9 @@ public class WebAppRunner {
 	
 	public void start() throws Exception {
 	    server = new Server(port);
-	    
-//		DispatcherServlet dispatcherServlet = new DispatcherServlet();
-//	    dispatcherServlet.setContextConfigLocation("classpath:spring/dispatcher-servlet.xml");
-	    
 	    WebAppContext context = new WebAppContext();
 	    context.setResourceBase("src/main/webapp");
-//	    context.setWar("src/main/webapp");
-//	    context.setServer(server);
-//	    context.addServlet(new ServletHolder("dispatcher-servlet", dispatcherServlet), "/*");
-//	    context.setResourceBase("");
 	    context.setContextPath("/");
-	    
 	    server.setHandler(context);
 	    server.start();
 	}

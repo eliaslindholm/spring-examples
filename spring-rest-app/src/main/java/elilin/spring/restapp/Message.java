@@ -1,13 +1,18 @@
 package elilin.spring.restapp;
 
 import java.util.Date;
-
+/**
+ * Simple domain class to represent a message.
+ * 
+ * @author Elias Lindholm
+ *
+ */
 public class Message {
 
 	private String message;
 	private Date created;
-	private String signature;
-	private String id;
+	private Signature signature;
+	private MessageId id;
 
 	public String getMessage() {
 		return message;
@@ -25,19 +30,19 @@ public class Message {
 		this.created = created;
 	}
 
-	public String getSignature() {
+	public Signature getSignature() {
 		return signature;
 	}
 
-	public void setSignature(String signature) {
+	public void setSignature(Signature signature) {
 		this.signature = signature;
 	}
 
-	public String getId() {
+	public MessageId getId() {
 		return id;
 	}
 
-	public void setId(String id) {
+	public void setId(MessageId id) {
 		this.id = id;
 	}
 
