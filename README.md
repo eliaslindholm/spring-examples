@@ -1,4 +1,4 @@
 spring-examples
 ===============
 
-Provides code examples/template projects for different usages of spring framework.
+Provides code examples/template projects for different usage scenarios of the spring framework.

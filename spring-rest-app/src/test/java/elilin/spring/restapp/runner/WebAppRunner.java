@@ -11,12 +11,8 @@ import org.eclipse.jetty.webapp.WebAppContext;
  */
 public class WebAppRunner {
 	
-	private int port = 21019;
+	private int port = 21019; // Should probably scan for an free port to avoid conflicts, but we keep things simple here.
 	private Server server;
-	
-	public static void main(String[] args) throws Exception {
-		new WebAppRunner().start();
-	}
 	
 	public void start() throws Exception {
 	    server = new Server(port);

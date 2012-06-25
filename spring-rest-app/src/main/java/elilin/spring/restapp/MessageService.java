@@ -48,7 +48,7 @@ public class MessageService {
 		URI uri = new UriTemplate("{requestUrl}/{messageId}").expand(requestUrl, message.getId());
 		HttpHeaders headers = new HttpHeaders();
 		headers.setLocation(uri);
-		return new ResponseEntity<Object>(headers,HttpStatus.CREATED);
+		return new ResponseEntity<Object>(headers, HttpStatus.CREATED);
 	}
 	
 	private Map<String, String> validate(Message message) {
@@ -81,7 +81,9 @@ public class MessageService {
 			return new ResponseEntity<Void>(HttpStatus.PRECONDITION_FAILED);
 		}
 		messages.put(messageId, message.getBody());
-		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+		HttpHeaders headers = new HttpHeaders();
+		headers.setETag(getEtag(message.getBody()));
+		return new ResponseEntity<Void>(headers, HttpStatus.NO_CONTENT);
 	}
 
 	@RequestMapping(value = "/{messageId}", method = RequestMethod.DELETE)

@@ -1,5 +1,6 @@
 package elilin.spring.restapp.runner;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -103,6 +104,23 @@ public class MessageServiceTest {
 		
 		MessageDto updated = restTemplate.getForObject(messageUri, MessageDto.class);
 		assertEquals("Updated message", updated.getMessage());
+	}
+	
+	@Test
+	public void responseIncludesNewETagAfterResourceIsUpdatedWithPut() throws Exception {
+		URI messageUri = restTemplate.postForLocation(getMessagesUri(), new MessageDto("Hello World!", "Foppa"));
+		
+		ResponseEntity<MessageDto> response = restTemplate.getForEntity(messageUri,MessageDto.class);
+		String etag = response.getHeaders().getETag();
+		
+		MessageDto msg = response.getBody();
+		msg.setMessage("Updated message");
+		HttpHeaders headers = new HttpHeaders();
+		headers.set("If-Match", etag);
+		HttpEntity<MessageDto> put = new HttpEntity<MessageDto>(msg, headers);
+		ResponseEntity<MessageDto> exchange = restTemplate.exchange(messageUri, HttpMethod.PUT, put, MessageDto.class);
+		assertNotNull("ETag header should be set after successful update", exchange.getHeaders().getETag());
+		assertFalse(etag.equals(exchange.getHeaders().getETag()));
 	}
 
 	@Test

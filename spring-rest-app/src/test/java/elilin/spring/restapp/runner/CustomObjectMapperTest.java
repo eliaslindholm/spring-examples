@@ -23,7 +23,6 @@ public class CustomObjectMapperTest {
 		
 		CustomObjectMapper mapper = new CustomObjectMapper();
 		String json = mapper.writeValueAsString(m);
-		System.out.println(json);
 		Message unmarshalled = mapper.readValue(json, Message.class);
 		
 		assertEquals(m.getId(), unmarshalled.getId());
