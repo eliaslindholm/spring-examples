@@ -35,6 +35,13 @@
 			<artifactId>javax.servlet</artifactId>
 			<version>3.0.0.v201112011016</version>
 		</dependency>
+		
+		<!-- For Atom feed publishing -->
+		<dependency>
+			<groupId>rome</groupId>
+			<artifactId>rome</artifactId>
+			<version>1.0</version>
+		</dependency>
 
 		<!-- Test scoped deps -->
 		<dependency>

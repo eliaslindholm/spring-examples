@@ -1,5 +1,7 @@
 package elilin.spring.restapp.runner;
 
+import java.util.Random;
+
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
 
@@ -11,8 +13,12 @@ import org.eclipse.jetty.webapp.WebAppContext;
  */
 public class WebAppRunner {
 	
-	private int port = 21019; // Should probably scan for an free port to avoid conflicts, but we keep things simple here.
+	private int port;
 	private Server server;
+	
+	public WebAppRunner() {
+		this.port = 10000 + new Random().nextInt(40000);
+	}
 	
 	public void start() throws Exception {
 	    server = new Server(port);
@@ -25,6 +31,8 @@ public class WebAppRunner {
 	
 	public void stop() throws Exception {
 		server.stop();
+		server.join();
+		
 	}
 
 	public String getBaseUri() {

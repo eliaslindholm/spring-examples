@@ -28,7 +28,7 @@ public class CustomObjectMapperTest {
 		assertEquals(m.getId(), unmarshalled.getId());
 		assertEquals(m.getCreated(), unmarshalled.getCreated());
 		assertEquals(m.getSignature(), unmarshalled.getSignature());
-		assertEquals(m.getMessage(), unmarshalled.getSignature());
+		assertEquals(m.getMessage(), unmarshalled.getMessage());
 	}
 
 }

@@ -1,8 +1,12 @@
 package elilin.spring.restapp;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,6 +21,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.UriTemplate;
 /**
  * 
@@ -94,6 +99,22 @@ public class MessageService {
 		messages.remove(messageId);
 		return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 	}
+	
+	@RequestMapping("/notifications")
+	public ModelAndView latestMessagesFeed() {
+		ModelAndView mav = new ModelAndView();
+		List<Message> messages = new ArrayList<Message>(this.messages.values());
+		Collections.sort(messages, new Comparator<Message>() {
+			@Override
+			public int compare(Message o1, Message o2) {
+				return -o1.getCreated().compareTo(o2.getCreated());
+			}
+		});
+		mav.addObject("content", messages);
+		mav.setView(new MessageAtomView());
+		return mav;
+	}
+	
 
 	private String getEtag(Message old) {
 		return "\"" + old.hashCode() + "\"";

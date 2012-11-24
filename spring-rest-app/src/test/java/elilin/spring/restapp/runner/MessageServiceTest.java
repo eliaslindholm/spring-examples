@@ -1,11 +1,10 @@
 package elilin.spring.restapp.runner;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 import java.net.URI;
-import java.util.Date;
 import java.util.Map;
 
 import org.junit.AfterClass;
@@ -140,54 +139,6 @@ public class MessageServiceTest {
 
 	private String getMessagesUri() {
 		return runner.getAbsoluteUrl("/messages");
-	}
-	
-	static class MessageDto {
-		
-		private Long id;
-		private String message;
-		private String signature;
-		private Date created;
-		
-		public MessageDto() {}
-		
-		public MessageDto(String message, String signature) {
-			this.message = message;
-			this.signature = signature;
-		}
-
-		public String getMessage() {
-			return message;
-		}
-		
-		public void setMessage(String message) {
-			this.message = message;
-		}
-		
-		public String getSignature() {
-			return signature;
-		}
-		
-		public void setSignature(String signature) {
-			this.signature = signature;
-		}
-
-		public Long getId() {
-			return id;
-		}
-
-		public void setId(Long id) {
-			this.id = id;
-		}
-
-		public Date getCreated() {
-			return created;
-		}
-
-		public void setCreated(Date created) {
-			this.created = created;
-		}
-		
 	}
 	
 }
