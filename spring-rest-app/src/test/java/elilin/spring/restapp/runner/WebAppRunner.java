@@ -3,7 +3,13 @@ package elilin.spring.restapp.runner;
 import java.util.Random;
 
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.webapp.WebAppContext;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.servlet.DispatcherServlet;
+
+import elilin.spring.restapp.AppConfig;
+import elilin.spring.restapp.DispatcherConfig;
 
 /**
  * Allows programmatic start and stop of an embedded jetty server running the rest application.
@@ -21,10 +27,14 @@ public class WebAppRunner {
 	}
 	
 	public void start() throws Exception {
+	    AnnotationConfigWebApplicationContext wac = new AnnotationConfigWebApplicationContext();
+	    wac.register(DispatcherConfig.class, AppConfig.class);
+	    
+	    ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+        context.addServlet(new ServletHolder(new DispatcherServlet(wac)), "/*");
+        context.setContextPath("/");
+
 	    server = new Server(port);
-	    WebAppContext context = new WebAppContext();
-	    context.setResourceBase("src/main/webapp");
-	    context.setContextPath("/");
 	    server.setHandler(context);
 	    server.start();
 	}
